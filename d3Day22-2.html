@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <title>Document</title>
+    <style>
+        .xAxis line, .yAxis line {
+            stroke:rgba(0,0,0,.1);
+        }
+
+    </style>
+</head>
+
+<body>
+    <script>
+        d3.json("populationDensity.json")
+            .then((data) => {
+                return data.result.records;
+            })
+            .then((data) => {
+                let reg = RegExp(/臺北市/);
+                return data.filter((el) => {
+                    return reg.test(el.site_id);
+                });
+            })
+            .then((taipei) => {
+                const newTaipei = taipei.map((el) => {
+                    el.people_total = Number(el.people_total);
+                    el.area = Number(el.area);
+                    el.population_density = Number(el.population_density);
+                    el.site_id = el.site_id.substr(3);
+                    return el;
+                });
+                const svg = d3.select("body")
+                            .append("svg")
+                            .attr("width", 600)
+                            .attr("height", 600);
+                const scaleX = d3.scaleLinear().domain([0,70]).range([0,500]);
+                const scaleY = d3.scaleLinear().domain([0, 320000]).range([500, 0]);
+                const axisX = d3.axisBottom(scaleX)
+                            .ticks(15)
+                            .tickFormat(function (d) { 
+                               return  d+"km²";
+                            })
+                            .tickSize(-500)  ; 
+                            ;
+                const axisY = d3.axisLeft(scaleY)
+                                .ticks(15)
+                                .tickFormat(function (d) {
+                                    return d / 10000 + "萬";
+                                })
+                                .tickSize(-500); 
+                const gX = svg.append("g")
+                    .attr("transform",`translate(50,550)`)
+                    .classed("xAxis",true);
+                axisX(gX);
+                const gY = svg.append("g")
+                            .attr("transform",`translate(50,50)`)
+                            .classed("yAxis",true);
+                axisY(gY);
+                const circle = svg.selectAll("circle");
+                const joinCircle = circle.data(newTaipei).join("circle");
+                joinCircle.attr("cx",d=>(scaleX(d.area)))
+                            .attr("cy",d=>(scaleY(d.people_total)))
+                            .attr("r",5)
+                            .attr("fill","red")
+                            .attr("transform", "translate(50,50)");            
+                    let gText = svg.append("g");
+                    gText.attr("transform",`translate(60,50)`);
+                    let joinText = gText.selectAll("text").data(newTaipei).join("text");
+                    joinText
+                        .text((d) => {
+                        return d.site_id;
+                        })
+                        .attr("x", (d, i) => {
+                            return scaleX(d.area);
+                        })
+                        .attr("y", (d) => {
+                            return scaleY(d.people_total);
+                        })
+                        .attr("font-size",9);
+            });
+    </script>
+</body>
+
+</html>
